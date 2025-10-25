@@ -1,0 +1,492 @@
+openapi: 3.0.3
+info:
+  title: Task Manager API
+  description: A complete REST API for managing tasks with MongoDB persistence
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@taskmanager.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.taskmanager.com/api/v1
+    description: Production server
+
+tags:
+  - name: Tasks
+    description: Task management operations
+  - name: Statistics
+    description: Task statistics and analytics
+  - name: Health
+    description: Health check endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the API is running properly
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy and running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Task Manager API is running
+        '500':
+          description: Internal server error
+
+  /tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Get all tasks
+      description: Retrieve all tasks with optional filtering
+      operationId: getTasks
+      parameters:
+        - name: filter
+          in: query
+          description: Filter tasks by status
+          required: false
+          schema:
+            type: string
+            enum: [all, completed, pending]
+            default: all
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Tasks
+      summary: Create a new task
+      description: Create a new task with the provided text
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Delete all tasks
+      description: Remove all tasks from the system
+      operationId: deleteAllTasks
+      responses:
+        '200':
+          description: All tasks deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: All tasks deleted successfully
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tasks/stats:
+    get:
+      tags:
+        - Statistics
+      summary: Get task statistics
+      description: Retrieve statistics about tasks (total, completed, pending)
+      operationId: getTaskStats
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStats'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tasks/{id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get a specific task
+      description: Retrieve a single task by its ID
+      operationId: getTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+            example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Tasks
+      summary: Update a task
+      description: Update an existing task with new data
+      operationId: updateTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+            example: "507f1f77bcf86cd799439011"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Delete a task
+      description: Remove a specific task by its ID
+      operationId: deleteTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+            example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Task deleted successfully
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tasks/{id}/toggle:
+    patch:
+      tags:
+        - Tasks
+      summary: Toggle task completion status
+      description: Toggle the completed status of a task (mark as completed/incomplete)
+      operationId: toggleTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+            example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Task status toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Task:
+      type: object
+      required:
+        - text
+        - completed
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the task
+          example: "507f1f77bcf86cd799439011"
+        text:
+          type: string
+          description: The task description
+          example: "Buy groceries"
+        completed:
+          type: boolean
+          description: Whether the task is completed
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          description: When the task was created
+          example: "2023-10-05T14:30:00Z"
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the task
+          example: "507f1f77bcf86cd799439011"
+        text:
+          type: string
+          description: The task description
+          example: "Buy groceries"
+        completed:
+          type: boolean
+          description: Whether the task is completed
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          description: When the task was created
+          example: "2023-10-05T14:30:00Z"
+
+    CreateTaskRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: The task description
+          minLength: 1
+          maxLength: 1000
+          example: "Buy groceries"
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The task description
+          minLength: 1
+          maxLength: 1000
+          example: "Buy groceries and cook dinner"
+        completed:
+          type: boolean
+          description: Whether the task is completed
+          example: true
+
+    TaskStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of tasks
+          minimum: 0
+          example: 15
+        completed:
+          type: integer
+          description: Number of completed tasks
+          minimum: 0
+          example: 8
+        pending:
+          type: integer
+          description: Number of pending tasks
+          minimum: 0
+          example: 7
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Task not found"
+        code:
+          type: integer
+          description: HTTP status code
+          example: 404
+        details:
+          type: string
+          description: Additional error details
+          example: "The requested task ID does not exist"
+
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: MongoDB ObjectId of the task
+      schema:
+        type: string
+        pattern: '^[a-fA-F0-9]{24}$'
+        example: "507f1f77bcf86cd799439011"
+
+    FilterParam:
+      name: filter
+      in: query
+      required: false
+      description: Filter tasks by completion status
+      schema:
+        type: string
+        enum: [all, completed, pending]
+        default: all
+
+  responses:
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Task not found"
+            code: 404
+            details: "The requested task ID does not exist"
+
+    BadRequest:
+      description: Invalid request body or parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invalid request body"
+            code: 400
+            details: "The 'text' field is required"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Internal server error"
+            code: 500
+            details: "Failed to connect to database"
+
+securitySchemes:
+  BearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+    description: JWT token for authentication
+
+externalDocs:
+  description: Find out more about this API
+  url: https://docs.taskmanager.com
